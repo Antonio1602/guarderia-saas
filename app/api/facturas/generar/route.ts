@@ -1,27 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { registrarFacturaInvocash } from '@/lib/invocash'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const VERIFACTU_BASE = 'https://app.verifactuapi.es/api'
 const NIF_EMISOR_PRUEBAS = process.env.VERIFACTU_EMISOR_NIF || 'A58818501'
-
-async function getToken(): Promise<string> {
-  const res = await fetch(`${VERIFACTU_BASE}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: process.env.VERIFACTU_USER,
-      password: process.env.VERIFACTU_PASSWORD,
-    }),
-  })
-  const data = await res.json()
-  if (!data.token) throw new Error('No se pudo obtener token de VeriFactu')
-  return data.token
-}
 
 async function generarNumeroSerie(periodo_anio: number): Promise<string> {
   const { data, error } = await supabase
@@ -87,63 +73,37 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 5. Generar número de serie atómico (sin condición de carrera)
+    // 5. Generar número de serie atómico
     const numeroSerie = await generarNumeroSerie(periodo_anio)
     const fechaHoy = new Date().toISOString().split('T')[0]
     const concepto = cuotas.map((c: any) => c.concepto).join(' + ')
 
-    // 6. Obtener token y enviar a VeriFactu
-    const token = await getToken()
-
-    const payload = {
+    // 6. Enviar a VeriFactu usando lib centralizada
+    const verifactuResult = await registrarFacturaInvocash({
       IDEmisorFactura: NIF_EMISOR_PRUEBAS,
       NumSerieFactura: numeroSerie,
       FechaExpedicionFactura: fechaHoy,
-      TipoFactura: 'F1',
       DescripcionOperacion: `Servicio de guardería ${periodo_mes}/${periodo_anio} - ${alumno.nombre} ${alumno.apellidos}`,
-      EmitidaPorTercODesti: null,
       Destinatarios: [
         {
           NombreRazon: tutor.nombre_razon,
-          NIF: tutor.es_extranjero ? undefined : tutor.nif,
+          NIF: tutor.es_extranjero ? '' : tutor.nif,
         },
       ],
-      Desglose: [
-        {
-          Impuesto: 1,
-          ClaveRegimen: 1,
-          CalificacionOperacion: 'E1',
-          TipoImpositivo: 0,
-          BaseImponibleOImporteNoSujeto: importe_base,
-          BaseImponibleACoste: importe_base,
-          CuotaRepercutida: 0,
-        },
-      ],
-      CuotaTotal: 0,
-      ImporteTotal: importe_total,
-      tag: `guarderia-saas-${periodo_anio}-${periodo_mes}`,
-    }
-
-    const verifactuRes = await fetch(`${VERIFACTU_BASE}/alta-registro-facturacion`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
+      baseImponible: importe_base,
+      cuotaIVA: 0,
+      importeTotal: importe_total,
+      tipoIVA: 0,
+      refExterna: `guarderia-saas-${periodo_anio}-${periodo_mes}`,
     })
 
-    const verifactuData = await verifactuRes.json()
-
     // 7. Si VeriFactu rechaza, devolvemos error SIN guardar en Supabase
-    if (!verifactuRes.ok || !verifactuData.success) {
+    if (!verifactuResult.success) {
       return NextResponse.json(
-        { error: 'VeriFactu rechazó la factura', detalles: verifactuData },
+        { error: 'VeriFactu rechazó la factura', detalles: verifactuResult.error },
         { status: 422 }
       )
     }
-
-    const item = verifactuData.data?.items?.[0]
 
     // 8. Guardar factura aprobada en Supabase
     const { data: factura, error: facturaError } = await supabase
@@ -160,10 +120,10 @@ export async function POST(req: NextRequest) {
         numero_serie: numeroSerie,
         fecha_emision: fechaHoy,
         concepto,
-        id_invocash: item?.id ?? null,
-        url_qr: item?.url_qr ?? null,
-        qr_image: item?.qr_image ?? null,
-        estado_aeat: item?.estado_aeat ?? null,
+        id_invocash: verifactuResult.id ?? null,
+        url_qr: verifactuResult.url_qr ?? null,
+        qr_image: verifactuResult.qr_image ?? null,
+        estado_aeat: null,
       })
       .select()
       .single()

@@ -101,7 +101,7 @@ export async function registrarFacturaInvocash(factura: {
         {
           Impuesto: 1,
           ClaveRegimen: 1,
-          CalificacionOperacion: 1,
+          CalificacionOperacion: 'E1',
           TipoImpositivo: factura.tipoIVA,
           BaseImponibleOImporteNoSujeto: factura.baseImponible,
           BaseImponibleACoste: factura.baseImponible,
@@ -115,29 +115,4 @@ export async function registrarFacturaInvocash(factura: {
 
     const res = await fetch(`${VERIFACTU_BASE}/api/alta-registro-facturacion`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    })
-
-    const data = await res.json()
-
-    if (!data.success) {
-      return { success: false, error: data.message }
-    }
-
-    const item = data.data?.items?.[0]
-    return {
-      success: true,
-      id: item?.id,
-      url_qr: item?.url_qr,
-      qr_image: item?.qr_image,
-    }
-
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error desconocido'
-    return { success: false, error: message }
-  }
-}
+      headers
