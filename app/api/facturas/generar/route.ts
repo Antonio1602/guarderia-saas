@@ -7,7 +7,7 @@ const supabase = createClient(
 )
 
 const VERIFACTU_BASE = 'https://app.verifactuapi.es/api'
-const NIF_EMISOR_PRUEBAS = 'A39200019'
+const NIF_EMISOR_PRUEBAS = process.env.VERIFACTU_EMISOR_NIF || 'A58818501'
 
 async function getToken(): Promise<string> {
   const res = await fetch(`${VERIFACTU_BASE}/login`, {
