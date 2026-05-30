@@ -115,4 +115,29 @@ export async function registrarFacturaInvocash(factura: {
 
     const res = await fetch(`${VERIFACTU_BASE}/api/alta-registro-facturacion`, {
       method: 'POST',
-      headers
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    })
+
+    const data = await res.json()
+
+    if (!data.success) {
+      return { success: false, error: data.message }
+    }
+
+    const item = data.data?.items?.[0]
+    return {
+      success: true,
+      id: item?.id,
+      url_qr: item?.url_qr,
+      qr_image: item?.qr_image,
+    }
+
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error desconocido'
+    return { success: false, error: message }
+  }
+}
