@@ -79,8 +79,6 @@ export async function POST(req: NextRequest) {
     const concepto = cuotas.map((c: any) => c.concepto).join(' + ')
 
     // 6. Enviar a VeriFactu usando lib centralizada
-    console.log('DEBUG TUTOR')
-    console.log(tutor)
     const verifactuResult = await registrarFacturaInvocash({
       IDEmisorFactura: NIF_EMISOR_PRUEBAS,
       NumSerieFactura: numeroSerie,
@@ -107,7 +105,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-  // 8. Guardar factura aprobada en Supabase (Modificado a estado: 'aceptado')
+    // 8. Guardar factura aprobada en Supabase (Modificado a estado: 'aceptado')
     const { data: factura, error: facturaError } = await supabase
       .from('facturas')
       .insert({
@@ -119,7 +117,7 @@ export async function POST(req: NextRequest) {
         importe_base,
         importe_total,
         cuota_iva: 0,
-        estado: 'aceptado', // El estado correcto según el flujo del negocio
+        estado: 'aceptado',
         numero_serie: numeroSerie,
         fecha_emision: fechaHoy,
         concepto,

@@ -104,7 +104,6 @@ export async function registrarFacturaInvocash(factura: {
           CalificacionOperacion: 1,
           TipoImpositivo: factura.tipoIVA,
           BaseImponibleOImporteNoSujeto: factura.baseImponible,
-         // BaseImponibleACoste: factura.baseImponible,
           CuotaRepercutida: factura.cuotaIVA,
         },
       ],
@@ -112,9 +111,6 @@ export async function registrarFacturaInvocash(factura: {
       ImporteTotal: factura.importeTotal,
       tag: 'guarderia-saas',
     }
-
-    console.log('DEBUG PAYLOAD INVOCASH')
-    console.log(JSON.stringify(body, null, 2))
 
     const res = await fetch(`${VERIFACTU_BASE}/api/alta-registro-facturacion`, {
       method: 'POST',
@@ -126,9 +122,6 @@ export async function registrarFacturaInvocash(factura: {
     })
 
     const data = await res.json()
-
-    console.log('DEBUG RESPUESTA INVOCASH')
-    console.log(JSON.stringify(data, null, 2))
 
     if (!data.success) {
       return { success: false, error: data.message }
