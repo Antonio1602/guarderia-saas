@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       .eq('alumno_id', alumno_id)
       .eq('periodo_mes', periodo_mes)
       .eq('periodo_anio', periodo_anio)
-      .eq('estado', 'emitida')
+      .eq('estado', 'aceptado')
       .maybeSingle()
 
     if (facturaExistente) {
@@ -79,6 +79,8 @@ export async function POST(req: NextRequest) {
     const concepto = cuotas.map((c: any) => c.concepto).join(' + ')
 
     // 6. Enviar a VeriFactu usando lib centralizada
+    console.log('DEBUG TUTOR')
+    console.log(tutor)
     const verifactuResult = await registrarFacturaInvocash({
       IDEmisorFactura: NIF_EMISOR_PRUEBAS,
       NumSerieFactura: numeroSerie,
@@ -105,10 +107,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 8. Guardar factura aprobada en Supabase
+  // 8. Guardar factura aprobada en Supabase (Modificado a estado: 'aceptado')
     const { data: factura, error: facturaError } = await supabase
       .from('facturas')
       .insert({
+        guarderia_id: alumno.guarderia_id,
         alumno_id,
         tutor_id: tutor.id,
         periodo_mes,
@@ -116,7 +119,7 @@ export async function POST(req: NextRequest) {
         importe_base,
         importe_total,
         cuota_iva: 0,
-        estado: 'emitida',
+        estado: 'aceptado', // El estado correcto según el flujo del negocio
         numero_serie: numeroSerie,
         fecha_emision: fechaHoy,
         concepto,
@@ -134,7 +137,7 @@ export async function POST(req: NextRequest) {
         { error: 'Factura enviada a AEAT pero error guardando localmente', detalles: facturaError },
         { status: 500 }
       )
-    }
+    }  
 
     return NextResponse.json({ ok: true, factura })
 
