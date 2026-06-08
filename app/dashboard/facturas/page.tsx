@@ -62,7 +62,7 @@ export default async function FacturasPage() {
                     <td className="px-4 py-3">{f.periodo_mes}/{f.periodo_anio}</td>
                     <td className="px-4 py-3 text-right font-semibold">{Number(f.importe_total).toFixed(2)} €</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${f.estado === 'emitida' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${f.estado === 'aceptado' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
                         {f.estado}
                       </span>
                     </td>
